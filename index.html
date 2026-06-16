@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2e9e6b" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a1714" media="(prefers-color-scheme: dark)">
+<!-- iOS: pełny ekran po „Dodaj do ekranu początkowego" (działa też z zakładki data URL) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Karma kota">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Karma dla kota — Cats Plate</title>
+<style>
+  :root {
+    --bg: #faf7f2;
+    --card: #ffffff;
+    --ink: #3a352f;
+    --muted: #8a8178;
+    --accent: #2e9e6b;
+    --accent-ink: #1f6e49;
+    --accent-soft: #e7f4ec;
+    --warn: #b9751a;
+    --warn-soft: #fbf0dd;
+    --danger: #c0392b;
+    --danger-soft: #fbe7e4;
+    --line: #ece6dd;
+    --radius: 16px;
+    --shadow: 0 1px 3px rgba(60,50,40,.07), 0 6px 20px rgba(60,50,40,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1714;
+      --card: #241f1b;
+      --ink: #ece6dd;
+      --muted: #9a8f83;
+      --accent: #3fb985;
+      --accent-ink: #6fd6a6;
+      --accent-soft: #1e3a2d;
+      --warn: #e0a64e;
+      --warn-soft: #3a2f1c;
+      --danger: #e8796b;
+      --danger-soft: #3a221f;
+      --line: #352e28;
+      --shadow: 0 1px 3px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+    margin: 0 auto;
+    padding: calc(14px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right))
+             calc(28px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));
+    background: var(--bg); color: var(--ink);
+    max-width: 620px;
+    font-size: 16px; line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+  h1 {
+    font-size: 1.4em; font-weight: 800; letter-spacing: -.01em;
+    margin: 4px 0 16px; display: flex; align-items: center; gap: 8px;
+  }
+  .card {
+    background: var(--card); padding: 16px;
+    border-radius: var(--radius); margin-bottom: 12px;
+    box-shadow: var(--shadow);
+  }
+  label.head {
+    display: block; font-weight: 700; margin-bottom: 4px; font-size: 1.02em;
+  }
+  .hint { color: var(--muted); font-size: 0.85em; margin-bottom: 10px; }
+  input[type="number"], select {
+    font-size: 16px; padding: 11px 12px;
+    border: 1.5px solid var(--line); border-radius: 11px;
+    background: var(--card); color: var(--ink);
+    max-width: 100%; transition: border-color .15s;
+  }
+  input[type="number"]:focus, select:focus {
+    outline: none; border-color: var(--accent);
+  }
+  select {
+    -webkit-appearance: menulist; appearance: menulist;
+    cursor: pointer; -webkit-tap-highlight-color: rgba(0,0,0,0.06);
+  }
+  input.short { width: 120px; }
+  .goal { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-end; }
+  .goal .field { display: flex; flex-direction: column; gap: 6px; }
+  .goal .field label { font-size: .82em; color: var(--muted); font-weight: 600; }
+  .goal input { width: 110px; }
+  .row {
+    display: flex; gap: 8px; margin-bottom: 9px;
+    align-items: center; flex-wrap: wrap;
+  }
+  .row select { flex: 1 1 58%; min-width: 160px; padding: 9px 10px; }
+  .row input { width: 84px; padding: 9px; text-align: right; }
+  .row .kcal {
+    min-width: 78px; color: var(--accent-ink); font-size: 0.88em; font-weight: 600;
+    flex: 0 0 auto;
+  }
+  .row .arrow { color: var(--muted); }
+  button {
+    font-size: 15px; padding: 10px 15px;
+    border: 0; border-radius: 11px; cursor: pointer;
+    font-family: inherit; transition: filter .15s, background .15s;
+  }
+  button:active { filter: brightness(.94); }
+  button.add { background: var(--accent); color: #fff; font-weight: 600; }
+  button.del { background: var(--danger-soft); color: var(--danger); padding: 8px 11px; }
+  button.move { background: var(--accent-soft); color: var(--accent-ink); padding: 8px 10px; }
+  .sum { color: var(--ink); font-weight: 600; margin-top: 12px; }
+  .result {
+    font-size: 1.5em; font-weight: 800; color: var(--accent-ink);
+    margin-top: 2px; letter-spacing: -.01em;
+  }
+  .result .sub { display: block; font-size: .58em; font-weight: 600; color: var(--muted); margin-top: 2px; }
+  .result.warn { color: var(--danger); }
+  .result.muted { color: var(--muted); font-weight: 600; font-size: 1.02em; }
+  .total { color: var(--muted); margin-top: 10px; font-size: 0.9em; font-weight: 600; }
+  /* posiłki */
+  .meal {
+    display: flex; gap: 10px; align-items: baseline;
+    padding: 9px 0; border-bottom: 1px solid var(--line);
+  }
+  .meal:last-child { border-bottom: 0; }
+  .meal-no { flex: 0 0 auto; font-weight: 700; color: var(--accent-ink); min-width: 108px; }
+  .meal-body { flex: 1 1 auto; }
+  .meal-kcal { color: var(--muted); font-weight: 600; }
+  .meal-empty { color: var(--muted); }
+</style>
+</head>
+<body>
+
+<h1>🐾 Karma dla kota</h1>
+
+<div class="card">
+  <div class="goal">
+    <div class="field">
+      <label for="target">Cel — kcal na dzień</label>
+      <input type="number" id="target" class="short tnum" value="200" min="0" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label for="meals">Liczba posiłków</label>
+      <input type="number" id="meals" class="short tnum" value="4" min="1" step="1" inputmode="numeric">
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <label class="head">🥣 Stałe porcje</label>
+  <div class="hint">Resztki słoików / znana ilość. Pomiń, jeśli wszystko ma być z jednej karmy.</div>
+  <div id="rows"></div>
+  <button class="add" onclick="addRow()">+ Dodaj porcję</button>
+  <div class="sum tnum" id="staleSum">Razem stałe:  0 g  ·  0 kcal</div>
+</div>
+
+<div class="card">
+  <label class="head">➕ Karma do dopełnienia</label>
+  <div class="hint">Zostanie dosypana tak, by zejść z dziennym celem kcal.</div>
+  <select id="fill" style="width:100%;">
+    <option value="">— wybierz karmę —</option>
+  </select>
+</div>
+
+<div class="card">
+  <label class="head">Należy dosypać</label>
+  <div class="result muted tnum" id="result">(wpisz docelową ilość kcal)</div>
+  <div class="total tnum" id="total">Łącznie dziennie:  0 g  ·  0 kcal</div>
+</div>
+
+<div class="card">
+  <label class="head">🍽 Plan posiłków</label>
+  <div class="hint">Posiłki równe kalorycznie. Słoiki w kolejności wierszy (strzałkami zmieniasz kolejność).</div>
+  <div id="meals_out"><div class="meal-empty">—</div></div>
+</div>
+
+<script>
+const KARMY = {
+  "Cats Plate Beef (wołowina)":         110,
+  "Cats Plate Duck (kaczka)":           107,
+  "Cats Plate Goose Mousse (gęś)":      151,
+  "Cats Plate Horse (konina)":          132,
+  "Cats Plate Lamb (jagnięcina)":       120,
+  "Cats Plate Pork (wieprzowina)":      137,
+  "Cats Plate Rabbit (królik)":         104,
+  "Cats Plate Salmon Mousse (łosoś)":   166,
+  "Cats Plate Turkey (indyk)":           98,
+  "Cats Plate Venison (sarnina)":       105,
+  // Koci Katering (inna firma): stała porcja 157 g = 253 kcal, jednakowa dla każdego smaku
+  "Koci Katering (dowolny smak)":       253 / 157 * 100,  // ≈ 161.1 kcal/100 g
+};
+
+// Emoji per smak — czytelność „na ikonę", zero kosztu, działa we wszystkich systemach.
+const EMOJI = {
+  "Cats Plate Beef (wołowina)":       "🥩",
+  "Cats Plate Duck (kaczka)":         "🦆",
+  "Cats Plate Goose Mousse (gęś)":    "🦢",
+  "Cats Plate Horse (konina)":        "🐴",
+  "Cats Plate Lamb (jagnięcina)":     "🐑",
+  "Cats Plate Pork (wieprzowina)":    "🐷",
+  "Cats Plate Rabbit (królik)":       "🐰",
+  "Cats Plate Salmon Mousse (łosoś)": "🐟",
+  "Cats Plate Turkey (indyk)":        "🦃",
+  "Cats Plate Venison (sarnina)":     "🦌",
+  "Koci Katering (dowolny smak)":     "🍱",
+};
+function emo(k) { return EMOJI[k] || "🍽"; }
+
+const fillSel = document.getElementById('fill');
+for (const k of Object.keys(KARMY)) {
+  const opt = document.createElement('option');
+  opt.value = k; opt.textContent = emo(k) + '  ' + k;
+  fillSel.appendChild(opt);
+}
+
+function shortName(k) { return k.split(' (')[0]; }
+function fmt(n) { return n.toFixed(1).replace('.', ','); }
+
+function splitIntoMeals(plan, nMeals) {
+  if (nMeals < 1 || !plan.length) return [];
+  const totalKcal = plan.reduce((s, p) => s + p.g * KARMY[p.karma] / 100, 0);
+  if (totalKcal < 0.05) return [];
+  const target = totalKcal / nMeals;
+  const queue = plan.map(p => ({karma: p.karma, g: p.g}));
+  const meals = [];
+  for (let i = 0; i < nMeals; i++) {
+    const isLast = (i === nMeals - 1);
+    const meal = [];
+    let remaining = target;
+    while (queue.length && (remaining > 0.05 || isLast)) {
+      const item = queue[0];
+      if (item.g < 0.01) { queue.shift(); continue; }
+      const kcalInJar = item.g * KARMY[item.karma] / 100;
+      if (isLast || kcalInJar <= remaining + 0.05) {
+        meal.push({karma: item.karma, g: item.g, kcal: kcalInJar});
+        if (!isLast) remaining -= kcalInJar;
+        queue.shift();
+      } else {
+        const gTake = remaining * 100 / KARMY[item.karma];
+        meal.push({karma: item.karma, g: gTake, kcal: remaining});
+        item.g -= gTake;
+        remaining = 0;
+      }
+    }
+    meals.push(meal);
+  }
+  return meals;
+}
+
+function mergeMeal(meal) {
+  const merged = [];
+  for (const c of meal) {
+    const last = merged[merged.length - 1];
+    if (last && last.karma === c.karma) {
+      last.g += c.g; last.kcal += c.kcal;
+    } else {
+      merged.push({karma: c.karma, g: c.g, kcal: c.kcal});
+    }
+  }
+  return merged;
+}
+
+function renderMeals(meals) {
+  const out = document.getElementById('meals_out');
+  if (!meals.length) { out.innerHTML = '<div class="meal-empty">—</div>'; return; }
+  out.innerHTML = meals.map((meal, idx) => {
+    const i = idx + 1;
+    const no = `<span class="meal-no">🍽 Posiłek ${i}</span>`;
+    if (!meal.length) return `<div class="meal">${no}<span class="meal-body meal-empty">—</span></div>`;
+    const merged = mergeMeal(meal);
+    const body = merged.map(c => `${emo(c.karma)} ${fmt(c.g)} g ${shortName(c.karma)}`).join(' + ');
+    const tot = merged.reduce((s, c) => s + c.kcal, 0);
+    return `<div class="meal">${no}<span class="meal-body tnum">${body} `
+         + `<span class="meal-kcal">· ${fmt(tot)} kcal</span></span></div>`;
+  }).join('');
+}
+
+function moveRow(div, direction) {
+  const rowsDiv = document.getElementById('rows');
+  if (direction === -1 && div.previousElementSibling) {
+    rowsDiv.insertBefore(div, div.previousElementSibling);
+  } else if (direction === 1 && div.nextElementSibling) {
+    rowsDiv.insertBefore(div.nextElementSibling, div);
+  }
+  recalc();
+}
+
+function addRow(karma, grams) {
+  const rowsDiv = document.getElementById('rows');
+  const div = document.createElement('div');
+  div.className = 'row';
+
+  const sel = document.createElement('select');
+  const optEmpty = document.createElement('option');
+  optEmpty.value = ''; optEmpty.textContent = '— karma —';
+  sel.appendChild(optEmpty);
+  for (const k of Object.keys(KARMY)) {
+    const opt = document.createElement('option');
+    opt.value = k; opt.textContent = emo(k) + '  ' + k;
+    sel.appendChild(opt);
+  }
+  if (karma) sel.value = karma;
+  sel.addEventListener('change', recalc);
+
+  const inp = document.createElement('input');
+  inp.type = 'number'; inp.step = '0.1'; inp.min = '0';
+  inp.placeholder = 'g'; inp.inputMode = 'decimal'; inp.className = 'tnum';
+  if (grams) inp.value = grams;
+  inp.addEventListener('input', recalc);
+
+  const arrow = document.createElement('span');
+  arrow.className = 'arrow'; arrow.textContent = 'g →';
+
+  const kcal = document.createElement('span');
+  kcal.className = 'kcal tnum'; kcal.textContent = '—';
+
+  const up = document.createElement('button');
+  up.className = 'move'; up.textContent = '▲'; up.title = 'W górę';
+  up.addEventListener('click', () => moveRow(div, -1));
+
+  const down = document.createElement('button');
+  down.className = 'move'; down.textContent = '▼'; down.title = 'W dół';
+  down.addEventListener('click', () => moveRow(div, 1));
+
+  const del = document.createElement('button');
+  del.className = 'del'; del.textContent = '✕';
+  del.addEventListener('click', () => { div.remove(); recalc(); });
+
+  div.appendChild(sel);
+  div.appendChild(inp);
+  div.appendChild(arrow);
+  div.appendChild(kcal);
+  div.appendChild(up);
+  div.appendChild(down);
+  div.appendChild(del);
+  div._sel = sel; div._inp = inp; div._kcal = kcal;
+
+  rowsDiv.appendChild(div);
+  inp.focus();
+  recalc();
+}
+
+function recalc() {
+  const targetRaw = document.getElementById('target').value.replace(',', '.');
+  const target = parseFloat(targetRaw);
+
+  const plan = [];
+  document.querySelectorAll('#rows .row').forEach(div => {
+    const k = div._sel.value;
+    const g = parseFloat(div._inp.value.replace(',', '.'));
+    if (k && g > 0 && KARMY[k]) {
+      const kcal = g * KARMY[k] / 100;
+      div._kcal.textContent = fmt(kcal) + ' kcal';
+      plan.push({karma: k, g: g});
+    } else {
+      div._kcal.textContent = '—';
+    }
+  });
+
+  const sumG = plan.reduce((s, p) => s + p.g, 0);
+  const sumKcal = plan.reduce((s, p) => s + p.g * KARMY[p.karma] / 100, 0);
+
+  document.getElementById('staleSum').textContent =
+    `Razem stałe:  ${fmt(sumG)} g  ·  ${fmt(sumKcal)} kcal`;
+
+  const fillK = fillSel.value;
+  const resEl = document.getElementById('result');
+  const totalEl = document.getElementById('total');
+
+  let dailyG = sumG, dailyKcal = sumKcal;
+  resEl.className = 'result tnum';
+
+  if (!target || target <= 0) {
+    resEl.classList.add('muted');
+    resEl.textContent = '(wpisz docelową ilość kcal)';
+  } else {
+    const remaining = target - sumKcal;
+    if (remaining < -0.05) {
+      resEl.classList.add('warn');
+      resEl.textContent = `Przekroczono cel o ${fmt(-remaining)} kcal`;
+    } else if (Math.abs(remaining) < 0.05) {
+      resEl.textContent = '✓ Cel osiągnięty stałymi porcjami';
+      dailyKcal = target;
+    } else if (!fillK || !KARMY[fillK]) {
+      resEl.classList.add('muted');
+      resEl.innerHTML = `Pozostało ${fmt(remaining)} kcal<span class="sub">wybierz karmę do dopełnienia ↑</span>`;
+    } else {
+      const gFill = remaining / KARMY[fillK] * 100;
+      plan.push({karma: fillK, g: gFill});
+      dailyG = sumG + gFill; dailyKcal = target;
+      resEl.innerHTML = `${emo(fillK)} ${fmt(gFill)} g · ${shortName(fillK)}`
+                      + `<span class="sub">${fmt(remaining)} kcal do dopełnienia</span>`;
+    }
+  }
+
+  totalEl.textContent =
+    `Łącznie dziennie:  ${fmt(dailyG)} g  ·  ${fmt(dailyKcal)} kcal`;
+
+  const nMeals = parseInt(document.getElementById('meals').value);
+  if (!nMeals || nMeals < 1 || !plan.length) {
+    renderMeals([]);
+    return;
+  }
+  renderMeals(splitIntoMeals(plan, nMeals));
+}
+
+document.getElementById('target').addEventListener('input', recalc);
+document.getElementById('meals').addEventListener('input', recalc);
+fillSel.addEventListener('change', recalc);
+recalc();
+</script>
+<script>
+// PWA: rejestracja service workera (offline + instalacja). Cicho ignoruje błędy
+// (np. otwarcie pliku lokalnie z file:// — wtedy SW po prostu się nie zarejestruje).
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
