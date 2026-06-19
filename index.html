@@ -92,6 +92,18 @@
   .goal .field { display: flex; flex-direction: column; gap: 6px; }
   .goal .field label { font-size: .82em; color: var(--muted); font-weight: 600; }
   .goal input { width: 110px; }
+  .chips { display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+  .chip {
+    font-size: 14px; padding: 6px 12px; border-radius: 999px;
+    border: 1.5px solid var(--line); background: var(--card); color: var(--muted);
+    cursor: pointer; font-family: inherit; font-weight: 600;
+    transition: background .15s, color .15s, border-color .15s;
+    -webkit-tap-highlight-color: rgba(0,0,0,0.06);
+  }
+  .chip:active { filter: brightness(.94); }
+  .chip.active {
+    background: var(--accent-soft); color: var(--accent-ink); border-color: var(--accent);
+  }
   .row {
     display: flex; gap: 8px; margin-bottom: 9px;
     align-items: center; flex-wrap: wrap;
@@ -141,7 +153,8 @@
   <div class="goal">
     <div class="field">
       <label for="target">Cel — kcal na dzień</label>
-      <input type="number" id="target" class="short tnum" value="200" min="0" inputmode="decimal">
+      <input type="number" id="target" class="short tnum" value="250" min="0" inputmode="decimal">
+      <div class="chips" id="targetChips"></div>
     </div>
     <div class="field">
       <label for="meals">Liczba posiłków</label>
@@ -408,9 +421,28 @@ function recalc() {
   renderMeals(splitIntoMeals(plan, nMeals));
 }
 
-document.getElementById('target').addEventListener('input', recalc);
+// Szybki wybór celu kcal — chipsy wpisują wartość, pole nadal przyjmuje dowolną liczbę.
+const TARGET_PRESETS = [240, 250, 260];
+const targetEl = document.getElementById('target');
+const chipEls = [];
+const chipsBox = document.getElementById('targetChips');
+for (const v of TARGET_PRESETS) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'chip tnum'; b.textContent = v + ' kcal';
+  b._val = v;
+  b.addEventListener('click', () => { targetEl.value = v; syncChips(); recalc(); });
+  chipsBox.appendChild(b);
+  chipEls.push(b);
+}
+function syncChips() {
+  const cur = parseFloat(targetEl.value.replace(',', '.'));
+  for (const b of chipEls) b.classList.toggle('active', b._val === cur);
+}
+
+targetEl.addEventListener('input', () => { syncChips(); recalc(); });
 document.getElementById('meals').addEventListener('input', recalc);
 fillSel.addEventListener('change', recalc);
+syncChips();
 recalc();
 </script>
 <script>
