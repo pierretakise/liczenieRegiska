@@ -756,6 +756,15 @@ function refreshZapasInputs() {
   }
   updateZapas();
 }
+// ── Optimistic concurrency (compare-and-swap) ──
+// lastUpdatedAt = wersja stanu, na której bazujemy (znacznik z serwera).
+//   Trzymana TYLKO w pamięci — świeży start karty = null = nie znamy wersji.
+// cloudLoaded = czy w tej sesji udało się pobrać/utworzyć stan.
+//   Bez tego NIE wypychamy — chroni przed nadpisaniem przez kartę,
+//   która nie zdążyła się zsynchronizować (np. wybudzona po dniach w tle).
+let lastUpdatedAt = null;
+let cloudLoaded = false;
+
 async function cloudGet(code) {
   const r = await fetch(`${SB_URL}/rest/v1/rpc/karma_get`, {
     method: 'POST',
@@ -763,24 +772,52 @@ async function cloudGet(code) {
     body: JSON.stringify({ p_code: code }),
   });
   if (!r.ok) throw new Error('HTTP ' + r.status);
-  return await r.json();
+  const j = await r.json();
+  // Nowy format = koperta {data, updated_at}. Stary (kompatybilność) = goła mapa / null.
+  if (j && typeof j === 'object' && ('data' in j) && ('updated_at' in j)) {
+    return { data: j.data, updatedAt: j.updated_at };
+  }
+  return { data: j, updatedAt: null };
 }
 async function cloudSet(code, data) {
   const r = await fetch(`${SB_URL}/rest/v1/rpc/karma_set`, {
     method: 'POST',
     headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ p_code: code, p_data: data }),
+    // p_prev_updated_at = nasza baza; serwer odrzuci, jeśli w chmurze jest nowszy stan.
+    body: JSON.stringify({ p_code: code, p_data: data, p_prev_updated_at: lastUpdatedAt }),
   });
   if (!r.ok) throw new Error('HTTP ' + r.status);
+  try { return await r.json(); } catch (e) { return null; }  // stary serwer (void) → null
+}
+// Przyjmij stan z serwera (po konflikcie / świeżym pobraniu) bez nadpisywania.
+function adoptCloud(data, updatedAt) {
+  if (data && typeof data === 'object') { zapasData = data; saveZapas(); refreshZapasInputs(); }
+  if (updatedAt !== undefined) lastUpdatedAt = updatedAt;
 }
 let cloudSaveTimer = null;
 function scheduleCloudSave() {
   if (!cloudEnabled()) return;
+  // Nie wypychaj, dopóki nie znamy aktualnej wersji z chmury — inaczej
+  // ślepy zapis mógłby cofnąć świeży stan domownika.
+  if (!cloudLoaded) { setDomStatus('Czekam na synchronizację przed zapisem…', 'warn'); return; }
   setDomStatus('Zapisywanie…');
   clearTimeout(cloudSaveTimer);
   cloudSaveTimer = setTimeout(async () => {
-    try { await cloudSet(domCode, zapasData); setDomStatus('Zsynchronizowano ✓', 'ok'); }
-    catch (e) { setDomStatus('Offline — zapis lokalny, zsynchronizuje przy połączeniu', 'warn'); }
+    try {
+      const res = await cloudSet(domCode, zapasData);
+      if (res && res.ok) {
+        lastUpdatedAt = res.updated_at || lastUpdatedAt;
+        setDomStatus('Zsynchronizowano ✓', 'ok');
+      } else if (res && res.conflict) {
+        // Ktoś zapisał nowszy stan — przyjmujemy go zamiast nadpisywać.
+        adoptCloud(res.data, res.updated_at);
+        setDomStatus('Zapas zmieniony na innym urządzeniu — wczytano najnowszy stan', 'warn');
+      } else {
+        setDomStatus('Zsynchronizowano ✓', 'ok');  // stary serwer (void)
+      }
+    } catch (e) {
+      setDomStatus('Offline — zapis lokalny, zsynchronizuje przy połączeniu', 'warn');
+    }
   }, 700);
 }
 async function cloudLoad() {
@@ -790,15 +827,28 @@ async function cloudLoad() {
   }
   setDomStatus('Ładowanie wspólnego zapasu…');
   try {
-    const data = await cloudGet(domCode);
-    if (data && typeof data === 'object') {
-      zapasData = data; saveZapas(); refreshZapasInputs();
+    const res = await cloudGet(domCode);
+    if (res.data && typeof res.data === 'object') {
+      adoptCloud(res.data, res.updatedAt);
+      cloudLoaded = true;
       setDomStatus('Zsynchronizowano ✓', 'ok');
     } else {
-      await cloudSet(domCode, zapasData);   // nowy kod → wgraj bieżący zapas
-      setDomStatus('Utworzono wspólny zapas ✓', 'ok');
+      // Brak wiersza → utwórz z bieżącego lokalnego (prev=null; serwer wstawi).
+      const created = await cloudSet(domCode, zapasData);
+      if (created && created.ok) {
+        lastUpdatedAt = created.updated_at || null;
+        setDomStatus('Utworzono wspólny zapas ✓', 'ok');
+      } else if (created && created.conflict) {
+        adoptCloud(created.data, created.updated_at);
+        setDomStatus('Zsynchronizowano ✓', 'ok');
+      } else {
+        setDomStatus('Utworzono wspólny zapas ✓', 'ok');  // stary serwer
+      }
+      cloudLoaded = true;
     }
   } catch (e) {
+    // Nieudane pobranie = nie znamy wersji → blokuj wypychanie do czasu udanego load.
+    cloudLoaded = false; lastUpdatedAt = null;
     setDomStatus('Brak połączenia — działa lokalnie', 'warn');
   }
 }
@@ -806,6 +856,7 @@ function applyDomCode(code) {
   domCode = (code || '').trim();
   try { localStorage.setItem(DOM_KEY, domCode); } catch (e) {}
   domInput.value = domCode;
+  cloudLoaded = false; lastUpdatedAt = null;   // nowy kod = nowa wersja
   cloudLoad();
 }
 domInput.addEventListener('change', () => applyDomCode(domInput.value));
@@ -826,9 +877,15 @@ domCopyBtn.addEventListener('click', async () => {
     ta.remove();
   }
 });
-// Po powrocie do apki (np. domownik coś zmienił) — pociągnij świeży stan.
+// Po powrocie do apki (np. domownik coś zmienił) — pociągnij świeży stan
+// PRZED jakimkolwiek zapisem (cloudLoad ustawia świeże lastUpdatedAt/cloudLoaded).
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && cloudEnabled()) cloudLoad();
+});
+// bfcache (iOS Safari potrafi przywrócić stronę bez przeładowania i bez
+// visibilitychange) — wymuś ponowną synchronizację przy przywróceniu.
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted && cloudEnabled()) cloudLoad();
 });
 cloudLoad();
 
