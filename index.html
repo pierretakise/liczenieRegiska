@@ -13,7 +13,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>Karma dla kota — Cats Plate</title>
+<title>Karma dla kota</title>
 <script>
   // Motyw: zastosuj zapisany wybór jak najwcześniej (bez mignięcia przy starcie).
   // Przechowujemy preferencję (auto/light/dark); „auto" rozwiązujemy wg systemu.
@@ -38,6 +38,11 @@
     --danger: #c0392b;
     --danger-soft: #fbe7e4;
     --line: #ece6dd;
+    --shade: rgba(40,32,24,.38);
+    --seg: #efe9e0;
+    --brand-cp: #2e9e6b;
+    --brand-gu: #b0603a;
+    --brand-kk: #6a5fb0;
     --radius: 16px;
     --shadow: 0 1px 3px rgba(60,50,40,.07), 0 6px 20px rgba(60,50,40,.05);
   }
@@ -55,6 +60,11 @@
     --danger: #e8796b;
     --danger-soft: #3a221f;
     --line: #352e28;
+    --shade: rgba(0,0,0,.55);
+    --seg: #2d2722;
+    --brand-cp: #3fb985;
+    --brand-gu: #e08a5f;
+    --brand-kk: #a99ff0;
     --shadow: 0 1px 3px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.25);
   }
   * { box-sizing: border-box; }
@@ -200,6 +210,77 @@
   .meal-body { flex: 1 1 auto; }
   .meal-kcal { color: var(--muted); font-weight: 600; }
   .meal-empty { color: var(--muted); }
+  .meals-warn { color: var(--warn); font-weight: 600; margin: 6px 0 4px; }
+  .meals-warn.hidden { display: none; }
+  /* Firmy — kolorowa kropka */
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: 0 0 auto; background: var(--muted); }
+  .b-cp { background: var(--brand-cp); } .b-gu { background: var(--brand-gu); } .b-kk { background: var(--brand-kk); }
+  /* Wybór karmy: przycisk + arkusz z kafelkami */
+  button.pick {
+    display: flex; align-items: center; gap: 8px; text-align: left;
+    background: var(--card); color: var(--ink); border: 1.5px solid var(--line);
+    padding: 9px 10px; font-size: 15px; min-width: 0;
+  }
+  .row .pick { flex: 1 1 58%; min-width: 160px; }
+  #fillBox .pick { width: 100%; }
+  .pick .nm { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pick .nm.empty { color: var(--muted); }
+  .pick .chev { color: var(--muted); flex: 0 0 auto; }
+  .sheet-shade { position: fixed; inset: 0; background: var(--shade); z-index: 20; }
+  .sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 21;
+    max-width: 620px; max-height: 82vh; margin: 0 auto;
+    background: var(--card); border-radius: 22px 22px 0 0;
+    padding: 10px calc(14px + env(safe-area-inset-right)) calc(16px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left));
+    display: flex; flex-direction: column; gap: 10px; box-shadow: 0 -8px 30px rgba(0,0,0,.18);
+  }
+  .sheet.hidden, .sheet-shade.hidden { display: none; }
+  .sheet .grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto; }
+  .sheet-top { display: flex; justify-content: space-between; align-items: center; }
+  .sheet-top b { font-size: 1.05em; }
+  .schips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; flex: 0 0 auto; }
+  .schips .chip { flex: 0 0 auto; margin: 0; }
+  .schips .chip[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent-ink); border-color: var(--accent); }
+  .tiles { overflow-y: auto; display: flex; flex-direction: column; gap: 14px; -webkit-overflow-scrolling: touch; }
+  .tgroup h4 {
+    margin: 0 0 8px; font-size: .78em; letter-spacing: .05em; text-transform: uppercase;
+    display: flex; align-items: center; gap: 6px; color: var(--ink);
+  }
+  .tgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  button.tile {
+    display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: center; text-align: left;
+    background: var(--bg); color: var(--ink); padding: 9px 10px; border: 1.5px solid transparent; min-width: 0;
+  }
+  .tile .em { font-size: 1.4em; grid-row: span 2; }
+  .tile .t { font-weight: 700; font-size: .9em; line-height: 1.2; overflow-wrap: anywhere; }
+  .tile .s { font-size: .76em; color: var(--muted); }
+  .tile .have { color: var(--accent-ink); font-weight: 700; }
+  button.tile.sel { border-color: var(--accent); background: var(--accent-soft); }
+  button.tile-clear { background: var(--danger-soft); color: var(--danger); font-weight: 600; align-self: flex-start; }
+  .sheet-note { color: var(--muted); font-size: .9em; padding: 6px 2px; }
+  /* Przełącznik dwóch stanów */
+  .seg { display: inline-flex; background: var(--seg); border-radius: 11px; padding: 3px; gap: 3px; }
+  .seg button { padding: 6px 12px; font-size: 14px; font-weight: 700; background: transparent; color: var(--muted); }
+  .seg button[aria-pressed="true"] { background: var(--card); color: var(--ink); box-shadow: var(--shadow); }
+  .zbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+  /* Spiżarnia w grupach firm */
+  .grp { border: 1.5px solid var(--line); border-radius: 13px; margin-bottom: 8px; overflow: hidden; }
+  .grp > summary {
+    list-style: none; cursor: pointer; display: grid; grid-template-columns: auto 1fr auto auto;
+    gap: 8px; align-items: center; padding: 10px 12px; -webkit-tap-highlight-color: rgba(0,0,0,0.06);
+  }
+  .grp > summary::-webkit-details-marker { display: none; }
+  .grp .gname { font-weight: 800; }
+  .grp .gmeta { font-size: .8em; color: var(--muted); text-align: right; line-height: 1.35; }
+  .grp .gmeta b { color: var(--accent-ink); }
+  .grp .gchev { color: var(--muted); transition: transform .15s; }
+  .grp[open] .gchev { transform: rotate(90deg); }
+  .grp .grows { padding: 0 12px 2px; border-top: 1px solid var(--line); }
+  .grp .zrow.hidden, .gnote.hidden { display: none; }
+  .gnote { color: var(--muted); font-size: .86em; padding: 10px 0; }
+  .zrow.zero .zname { color: var(--muted); }
+  .ver { text-align: center; color: var(--muted); font-size: .75em; margin-top: 6px; }
+  @media (prefers-reduced-motion: reduce) { .grp .gchev { transition: none; } }
 </style>
 </head>
 <body>
@@ -244,9 +325,7 @@
 <div class="card">
   <label class="head">➕ Karma do dopełnienia</label>
   <div class="hint">Zostanie dosypana tak, by zejść z dziennym celem kcal.</div>
-  <select id="fill" style="width:100%;">
-    <option value="">— wybierz karmę —</option>
-  </select>
+  <div id="fillBox"></div>
 </div>
 
 <div class="card">
@@ -258,6 +337,7 @@
 <div class="card">
   <label class="head">🍽 Plan posiłków</label>
   <div class="hint">Posiłki równe kalorycznie. Słoiki w kolejności wierszy (strzałkami zmieniasz kolejność).</div>
+  <div class="meals-warn hidden" id="mealsWarn"></div>
   <div id="meals_out"><div class="meal-empty">—</div></div>
   <button type="button" class="copy" id="copyBtn" disabled>📋 Kopiuj plan</button>
 </div>
@@ -266,7 +346,7 @@
 <div class="tabpane" id="pane-spizarnia">
 <div class="card">
   <label class="head">📦 Zapas (spiżarnia)</label>
-  <div class="hint">Ile słoików każdego smaku masz w szafce.</div>
+  <div class="hint">Ile opakowań każdego smaku masz w szafce.</div>
   <div class="dom">
     <label class="domlabel" for="domKod">🔗 Wspólny zapas — kod gospodarstwa</label>
     <div class="domrow">
@@ -276,13 +356,37 @@
     </div>
     <div class="domStatus" id="domStatus">Tryb lokalny — wpisz lub wygeneruj kod, by współdzielić z domownikiem.</div>
   </div>
+  <div class="zbar">
+    <span class="hint" style="margin:0">Smaki według firm</span>
+    <div class="seg" role="group" aria-label="Filtr spiżarni">
+      <button type="button" id="zHave" aria-pressed="true">Mam w szafce</button>
+      <button type="button" id="zAll" aria-pressed="false">Wszystkie</button>
+    </div>
+  </div>
   <div id="zapas"></div>
-  <div class="sum tnum" id="zapasSum">Razem: 0 słoików</div>
+  <div class="sum tnum" id="zapasSum">Razem: 0 opakowań</div>
   <div class="total tnum" id="zapasDni">Spiżarnia pusta.</div>
 </div>
 </div><!-- /pane-spizarnia -->
 
+<footer class="ver tnum" id="appVer"></footer>
+
+<div class="sheet-shade hidden" id="sheetShade"></div>
+<div class="sheet hidden" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+  <div class="grab"></div>
+  <div class="sheet-top">
+    <b id="sheetTitle">Wybierz karmę</b>
+    <button type="button" class="move" id="sheetClose">Zamknij</button>
+  </div>
+  <div class="schips" id="sheetChips" role="group" aria-label="Filtr karm"></div>
+  <div class="tiles" id="sheetTiles"></div>
+</div>
+
 <script>
+// Wersja aplikacji: major — zmiana algorytmu, minor — interfejs, patch — poprawki.
+const VERSION = '2.0.0';
+document.getElementById('appVer').textContent = 'Wersja ' + VERSION;
+
 const KARMY = {
   "Cats Plate Beef (wołowina)":         110,
   "Cats Plate Duck (kaczka)":           107,
@@ -295,6 +399,16 @@ const KARMY = {
   "Cats Plate Salmon Mousse (łosoś)":   166,
   "Cats Plate Turkey (indyk)":           98,
   "Cats Plate Venison (sarnina)":       105,
+  // Gussto Fresh: kcal ze stron gussto.pl (zrodla_kcal\)
+  "Gussto Fresh Beef (wołowina)":                     102.35,
+  "Gussto Fresh Calf & Rabbit (cielęcina i królik)":  103.75,
+  "Gussto Fresh Deer (jeleń)":                        109.03,
+  "Gussto Fresh Goat (koza)":                          94.46,
+  "Gussto Fresh Lamb (jagnięcina)":                   117.65,
+  "Gussto Fresh Salmon (łosoś)":                      119.33,
+  "Gussto Fresh Turkey & Duck (indyk i kaczka)":       97.47,
+  "Gussto Fresh Turkey & Tuna (indyk i tuńczyk)":      95.96,
+  "Gussto Fresh Wildboar (dzik)":                     104.23,
   // Koci Katering (inna firma): stała porcja 157 g = 253 kcal, jednakowa dla każdego smaku
   "Koci Katering (dowolny smak)":       253 / 157 * 100,  // ≈ 161.1 kcal/100 g
 };
@@ -312,12 +426,21 @@ const EMOJI = {
   "Cats Plate Salmon Mousse (łosoś)": "🐟",
   "Cats Plate Turkey (indyk)":        "🦃",
   "Cats Plate Venison (sarnina)":     "🦌",
+  "Gussto Fresh Beef (wołowina)":                    "🐄",
+  "Gussto Fresh Calf & Rabbit (cielęcina i królik)": "🐮",
+  "Gussto Fresh Deer (jeleń)":                       "🦌",
+  "Gussto Fresh Goat (koza)":                        "🐐",
+  "Gussto Fresh Lamb (jagnięcina)":                  "🐑",
+  "Gussto Fresh Salmon (łosoś)":                     "🐟",
+  "Gussto Fresh Turkey & Duck (indyk i kaczka)":     "🦆",
+  "Gussto Fresh Turkey & Tuna (indyk i tuńczyk)":    "🦃",
+  "Gussto Fresh Wildboar (dzik)":                    "🐗",
   "Koci Katering (dowolny smak)":     "🍱",
 };
 function emo(k) { return EMOJI[k] || "🍽"; }
 
-// Gramatura słoika per smak (źródło: zapisane strony produktowe Cats Plate *.htm;
-// Koci Katering 157 g wg KONTEKST). Potrzebne do „na ile starczy zapas".
+// Gramatura opakowania per smak (źródło: zapisane strony produktowe w zrodla_kcal\; Gussto — puszki
+// kupowane przez Kubę: 400 g, Salmon 375 g; Koci Katering 157 g). Potrzebne do „na ile starczy zapas".
 const JAR_G = {
   "Cats Plate Beef (wołowina)":         360,
   "Cats Plate Duck (kaczka)":           360,
@@ -330,24 +453,151 @@ const JAR_G = {
   "Cats Plate Salmon Mousse (łosoś)":   100,
   "Cats Plate Turkey (indyk)":          360,
   "Cats Plate Venison (sarnina)":       180,
+  "Gussto Fresh Beef (wołowina)":                     400,
+  "Gussto Fresh Calf & Rabbit (cielęcina i królik)":  400,
+  "Gussto Fresh Deer (jeleń)":                        400,
+  "Gussto Fresh Goat (koza)":                         400,
+  "Gussto Fresh Lamb (jagnięcina)":                   400,
+  "Gussto Fresh Salmon (łosoś)":                      375,
+  "Gussto Fresh Turkey & Duck (indyk i kaczka)":      400,
+  "Gussto Fresh Turkey & Tuna (indyk i tuńczyk)":     400,
+  "Gussto Fresh Wildboar (dzik)":                     400,
   "Koci Katering (dowolny smak)":       157,
 };
 
-const fillSel = document.getElementById('fill');
-for (const k of Object.keys(KARMY)) {
-  const opt = document.createElement('option');
-  opt.value = k; opt.textContent = emo(k) + '  ' + k;
-  fillSel.appendChild(opt);
-}
-
 function shortName(k) { return k.split(' (')[0]; }
 function fmt(n) { return n.toFixed(1).replace('.', ','); }
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+}
+function plural(n, forms) {
+  n = Math.abs(n);
+  if (n === 1) return forms[0];
+  const t = n % 10, h = n % 100;
+  return (t >= 2 && t <= 4 && !(h >= 12 && h <= 14)) ? forms[1] : forms[2];
+}
 
-function splitIntoMeals(plan, nMeals) {
+// Firmy — kolejność grup w wyborze karmy i w spiżarni. Firma = początek klucza smaku (klucze bez zmian).
+const FIRMY = [
+  { name: 'Cats Plate',    cls: 'b-cp', jedn: ['słoik', 'słoiki', 'słoików'] },
+  { name: 'Gussto Fresh',  cls: 'b-gu', jedn: ['puszka', 'puszki', 'puszek'] },
+  { name: 'Koci Katering', cls: 'b-kk', jedn: ['porcja', 'porcje', 'porcji'] },
+];
+const INNA = { name: 'Inne', cls: '', jedn: ['opakowanie', 'opakowania', 'opakowań'] };
+const OPAK = INNA.jedn;
+function firmaOf(k) { return FIRMY.find(f => k.startsWith(f.name + ' ')) || INNA; }
+function smakOf(k) {                       // „Beef”, „Turkey & Duck”; Koci Katering → „dowolny smak”
+  const s = shortName(k).slice(firmaOf(k).name.length).trim();
+  return s || plOf(k) || k;
+}
+function plOf(k) { const m = k.match(/\(([^)]*)\)\s*$/); return m ? m[1] : ''; }
+function stockOf(k) { return Number(zapasData[k]) || 0; }   // wołane dopiero po starcie (zapasData niżej)
+
+// ── Wybór karmy: przycisk + arkusz z kafelkami; filtr „Mam” domyślnie ──
+// Obiekt wybieraka ma .value jak <select>, więc reszta kodu czyta go tak samo.
+function makePicker(opts) {
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'pick';
+  btn.setAttribute('aria-haspopup', 'dialog');
+  let value = '';
+  const p = {
+    el: btn,
+    allowEmpty: !!opts.allowEmpty,
+    get value() { return value; },
+    set value(v) { value = (v && KARMY[v]) ? v : ''; paint(); },
+    choose(v) { p.value = v; if (opts.onChange) opts.onChange(value); },
+  };
+  function paint() {
+    if (!value) {
+      btn.innerHTML = `<span class="nm empty">${esc(opts.emptyLabel)}</span><span class="chev">▾</span>`;
+      btn.title = '';
+      return;
+    }
+    btn.innerHTML = `<span class="dot ${firmaOf(value).cls}"></span>`
+      + `<span class="nm">${esc(emo(value) + ' ' + shortName(value))}</span><span class="chev">▾</span>`;
+    btn.title = value;
+  }
+  btn.addEventListener('click', () => openSheet(p));
+  paint();
+  return p;
+}
+
+const sheetEl = document.getElementById('sheet');
+const sheetShade = document.getElementById('sheetShade');
+const sheetChips = document.getElementById('sheetChips');
+const sheetTiles = document.getElementById('sheetTiles');
+let sheetPicker = null, sheetFilter = 'have';
+
+function anyStock() { return Object.keys(KARMY).some(k => stockOf(k) > 0); }
+function openSheet(p) {
+  sheetPicker = p;
+  sheetFilter = anyStock() ? 'have' : 'all';   // pusta spiżarnia → od razu wszystkie
+  renderSheet();
+  sheetShade.classList.remove('hidden'); sheetEl.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  sheetTiles.scrollTop = 0;
+  const first = sheetChips.querySelector('[aria-pressed="true"]');
+  if (first) first.focus();
+}
+function closeSheet() {
+  if (!sheetPicker) return;
+  const p = sheetPicker; sheetPicker = null;
+  sheetShade.classList.add('hidden'); sheetEl.classList.add('hidden');
+  document.body.style.overflow = '';
+  p.el.focus();
+}
+function renderSheet() {
+  const p = sheetPicker; if (!p) return;
+  const filters = [['have', 'Mam'], ['all', 'Wszystkie'], ...FIRMY.map(f => [f.name, f.name])];
+  sheetChips.innerHTML = filters.map(([id, label]) =>
+    `<button type="button" class="chip" data-f="${esc(id)}" aria-pressed="${sheetFilter === id}">${esc(label)}</button>`).join('');
+
+  let html = '';
+  if (p.allowEmpty && p.value) html += '<button type="button" class="tile-clear" data-k="">✕ Bez dopełnienia</button>';
+  for (const f of FIRMY) {
+    if (!['have', 'all', f.name].includes(sheetFilter)) continue;
+    const keys = Object.keys(KARMY).filter(k => firmaOf(k) === f && (sheetFilter !== 'have' || stockOf(k) > 0));
+    if (!keys.length) continue;
+    html += `<div class="tgroup"><h4><span class="dot ${f.cls}"></span>${esc(f.name)}</h4><div class="tgrid">`;
+    for (const k of keys) {
+      const n = stockOf(k);
+      html += `<button type="button" class="tile${k === p.value ? ' sel' : ''}" data-k="${esc(k)}" title="${esc(k)}">`
+        + `<span class="em">${emo(k)}</span><span class="t">${esc(smakOf(k))}</span>`
+        + `<span class="s tnum">${fmt(KARMY[k])} kcal/100 g${n > 0 ? ` · <span class="have">masz ${n}</span>` : ''}</span></button>`;
+    }
+    html += '</div></div>';
+  }
+  if (!html.includes('class="tgroup"')) {
+    html += sheetFilter === 'have'
+      ? '<div class="sheet-note">W spiżarni nic nie ma — wybierz „Wszystkie”.</div>'
+      : '<div class="sheet-note">Brak smaków tej firmy.</div>';
+  }
+  sheetTiles.innerHTML = html;
+}
+sheetChips.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-f]'); if (!b) return;
+  sheetFilter = b.dataset.f; renderSheet(); sheetTiles.scrollTop = 0;
+});
+sheetTiles.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-k]'); if (!b || !sheetPicker) return;
+  const p = sheetPicker;
+  closeSheet();
+  p.choose(b.dataset.k);
+});
+sheetShade.addEventListener('click', closeSheet);
+document.getElementById('sheetClose').addEventListener('click', closeSheet);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && sheetPicker) closeSheet(); });
+
+const fillSel = makePicker({ allowEmpty: true, emptyLabel: '— wybierz karmę —', onChange: () => recalc() });
+document.getElementById('fillBox').appendChild(fillSel.el);
+
+// mealKcal > 0 — wielkość posiłku z celu (pula nie pokrywa celu: posiłki pełne, aż pula się skończy);
+// bez niego posiłek = pula / liczba posiłków.
+function splitIntoMeals(plan, nMeals, mealKcal) {
   if (nMeals < 1 || !plan.length) return [];
   const totalKcal = plan.reduce((s, p) => s + p.g * KARMY[p.karma] / 100, 0);
   if (totalKcal < 0.05) return [];
-  const target = totalKcal / nMeals;
+  const target = (mealKcal > 0) ? mealKcal : totalKcal / nMeals;
   const queue = plan.map(p => ({karma: p.karma, g: p.g}));
   const meals = [];
   for (let i = 0; i < nMeals; i++) {
@@ -395,7 +645,7 @@ function renderMeals(meals, offset = 0) {
     const no = `<span class="meal-no">🍽 Posiłek ${i}</span>`;
     if (!meal.length) return `<div class="meal">${no}<span class="meal-body meal-empty">—</span></div>`;
     const merged = mergeMeal(meal);
-    const body = merged.map(c => `${emo(c.karma)} ${fmt(c.g)} g ${shortName(c.karma)}`).join(' + ');
+    const body = merged.map(c => `${emo(c.karma)} ${fmt(c.g)} g ${esc(shortName(c.karma))}`).join(' + ');
     const tot = merged.reduce((s, c) => s + c.kcal, 0);
     return `<div class="meal">${no}<span class="meal-body tnum">${body} `
          + `<span class="meal-kcal">· ${fmt(tot)} kcal</span></span></div>`;
@@ -417,17 +667,9 @@ function addRow(karma, grams, noFocus) {
   const div = document.createElement('div');
   div.className = 'row';
 
-  const sel = document.createElement('select');
-  const optEmpty = document.createElement('option');
-  optEmpty.value = ''; optEmpty.textContent = '— karma —';
-  sel.appendChild(optEmpty);
-  for (const k of Object.keys(KARMY)) {
-    const opt = document.createElement('option');
-    opt.value = k; opt.textContent = emo(k) + '  ' + k;
-    sel.appendChild(opt);
-  }
+  // Po wyborze karmy kursor w gramach, jeśli puste.
+  const sel = makePicker({ emptyLabel: '— karma —', onChange: () => { recalc(); if (!inp.value) inp.focus(); } });
   if (karma) sel.value = karma;
-  sel.addEventListener('change', recalc);
 
   const inp = document.createElement('input');
   inp.type = 'number'; inp.step = '0.1'; inp.min = '0';
@@ -453,7 +695,7 @@ function addRow(karma, grams, noFocus) {
   del.className = 'del'; del.textContent = '✕';
   del.addEventListener('click', () => { div.remove(); recalc(); });
 
-  div.appendChild(sel);
+  div.appendChild(sel.el);
   div.appendChild(inp);
   div.appendChild(arrow);
   div.appendChild(kcal);
@@ -463,8 +705,8 @@ function addRow(karma, grams, noFocus) {
   div._sel = sel; div._inp = inp; div._kcal = kcal;
 
   rowsDiv.appendChild(div);
-  if (!noFocus) inp.focus();
   recalc();
+  if (!noFocus) { if (karma) inp.focus(); else openSheet(sel); }   // nowy wiersz → od razu wybór karmy
 }
 
 // copyBtn / lastPlanText — obsługa „Kopiuj plan".
@@ -489,6 +731,7 @@ function updatePlanText(meals, offset, ctx) {
       const tot = merged.reduce((s, c) => s + c.kcal, 0);
       lines.push(`Posiłek ${i}: ${body} · ${fmt(tot)} kcal`);
     });
+    if (ctx.shortKcal) lines.push(`⚠️ Brakuje ${fmt(ctx.shortKcal)} kcal do celu`);
   }
   lastPlanText = lines.join('\n');
   copyBtn.disabled = !meals.length;
@@ -572,7 +815,7 @@ function recalc() {
       const gFill = remaining / KARMY[fillK] * 100;
       plan.push({karma: fillK, g: gFill});
       dailyG = sumG + gFill; dailyKcal = effTarget;
-      resEl.innerHTML = `${emo(fillK)} ${fmt(gFill)} g · ${shortName(fillK)}`
+      resEl.innerHTML = `${emo(fillK)} ${fmt(gFill)} g · ${esc(shortName(fillK))}`
                       + `<span class="sub">${fmt(remaining)} kcal do dopełnienia</span>`;
     }
   }
@@ -580,10 +823,23 @@ function recalc() {
   totalEl.textContent =
     `${inDay ? 'Łącznie reszta dnia' : 'Łącznie dziennie'}:  ${fmt(dailyG)} g  ·  ${fmt(dailyKcal)} kcal`;
 
+  // Czy pula (stałe porcje + ewentualne dopełnienie) pokrywa cel? Nie → posiłki liczone z celu.
+  const planKcal = plan.reduce((s, p) => s + p.g * KARMY[p.karma] / 100, 0);
+  const brakKcal = (!allServed && effTarget > 0) ? (effTarget - planKcal) : 0;
+  const underCover = brakKcal > 0.05;
   const mealsArr = (allServed || effMeals < 1 || !plan.length)
-    ? [] : splitIntoMeals(plan, effMeals);
+    ? [] : splitIntoMeals(plan, effMeals, underCover ? effTarget / effMeals : 0);
+  const shortKcal = (underCover && mealsArr.length) ? brakKcal : 0;
+  const mealsWarn = document.getElementById('mealsWarn');
+  if (shortKcal) {
+    mealsWarn.textContent = `⚠️ Brakuje ${fmt(shortKcal)} kcal do celu${inDay ? ' reszty dnia' : ''} — `
+      + 'wybierz karmę do dopełnienia, inaczej ostatnie posiłki wyjdą niepełne.';
+    mealsWarn.classList.remove('hidden');
+  } else {
+    mealsWarn.classList.add('hidden');
+  }
   renderMeals(mealsArr, served);
-  updatePlanText(mealsArr, served, { target, nMeals, inDay, effMeals, allServed });
+  updatePlanText(mealsArr, served, { target, nMeals, inDay, effMeals, allServed, shortKcal });
   if (typeof updateZapas === 'function') updateZapas();
 }
 
@@ -608,7 +864,6 @@ function syncChips() {
 targetEl.addEventListener('input', () => { syncChips(); recalc(); });
 document.getElementById('meals').addEventListener('input', recalc);
 document.getElementById('served').addEventListener('input', recalc);
-fillSel.addEventListener('change', recalc);
 
 // ── Motyw: cykl auto → jasny → ciemny ────────────────────────────────
 const THEME_KEY = 'karmaKota.theme';
@@ -656,7 +911,7 @@ copyBtn.addEventListener('click', async () => {
   }
 });
 
-// ── Zapas (spiżarnia) — ile słoików czego mamy. ──────────────────────
+// ── Zapas (spiżarnia) — ile opakowań czego mamy, w grupach firm. ─────────
 // Pamięć lokalna (cache offline) + opcjonalna synchronizacja z domownikiem
 // przez Supabase (gdy ustawiony „kod gospodarstwa" — patrz blok chmury niżej).
 const ZAPAS_KEY = 'karmaKota.zapas.v1';
@@ -670,23 +925,29 @@ try { zapasData = JSON.parse(localStorage.getItem(ZAPAS_KEY)) || {}; } catch (e)
 function saveZapas() {
   try { localStorage.setItem(ZAPAS_KEY, JSON.stringify(zapasData)); } catch (e) {}
 }
-function sloikiWord(n) {
-  n = Math.abs(n);
-  if (n === 1) return 'słoik';
-  const t = n % 10, h = n % 100;
-  return (t >= 2 && t <= 4 && !(h >= 12 && h <= 14)) ? 'słoiki' : 'słoików';
-}
+const zapasRows = {};      // smak → wiersz
+const zapasGroups = [];    // { f, det, meta, note, keys } — jedna sekcja <details> na firmę
+let zapasOnlyHave = true;  // filtr „Mam w szafce”
 function updateZapas() {
   let jars = 0, grams = 0, kcal = 0;
   for (const k of Object.keys(KARMY)) {
     const n = Number(zapasData[k]) || 0;
+    if (zapasRows[k]) zapasRows[k].classList.toggle('zero', n <= 0);
     if (n <= 0) continue;
     jars  += n;
     grams += n * JAR_G[k];
     kcal  += n * JAR_G[k] * KARMY[k] / 100;
   }
+  for (const g of zapasGroups) {
+    const n = g.keys.reduce((s, k) => s + (Number(zapasData[k]) || 0), 0);
+    const gk = g.keys.reduce((s, k) => s + (Number(zapasData[k]) || 0) * JAR_G[k] * KARMY[k] / 100, 0);
+    const smaki = `${g.keys.length} ${plural(g.keys.length, ['smak', 'smaki', 'smaków'])}`;
+    g.meta.innerHTML = n > 0
+      ? `<b>${n} ${esc(plural(n, g.f.jedn))}</b><br>${smaki} · ${fmt(gk)} kcal`
+      : `pusto<br>${smaki}`;
+  }
   zapasSumEl.textContent =
-    `Razem: ${jars} ${sloikiWord(jars)}  ·  ${fmt(grams)} g  ·  ${fmt(kcal)} kcal`;
+    `Razem: ${jars} ${plural(jars, OPAK)}  ·  ${fmt(grams)} g  ·  ${fmt(kcal)} kcal`;
 
   const target = parseFloat((document.getElementById('target').value || '').replace(',', '.'));
   zapasDniEl.classList.remove('low');
@@ -703,35 +964,77 @@ function updateZapas() {
       + (low ? ' ⚠️ Czas zamówić.' : '');
   }
 }
-for (const k of Object.keys(KARMY)) {
-  const row = document.createElement('div'); row.className = 'zrow';
-  const name = document.createElement('span'); name.className = 'zname';
-  name.innerHTML = `${emo(k)} ${shortName(k)} <span class="jarsize">· ${JAR_G[k]} g/słoik</span>`;
-  const ctrl = document.createElement('div'); ctrl.className = 'zctrl';
-  const minus = document.createElement('button');
-  minus.type = 'button'; minus.className = 'step'; minus.textContent = '−'; minus.title = 'Mniej';
-  const inp = document.createElement('input');
-  inp.type = 'number'; inp.min = '0'; inp.step = '1'; inp.inputMode = 'numeric'; inp.className = 'tnum';
-  inp.value = (zapasData[k] > 0) ? zapasData[k] : '';
-  zapasInputs[k] = inp;
-  const plus = document.createElement('button');
-  plus.type = 'button'; plus.className = 'step'; plus.textContent = '+'; plus.title = 'Więcej';
-  const setVal = (v) => {
-    v = Math.max(0, v);
-    zapasData[k] = v;
-    inp.value = v > 0 ? v : '';
-    saveZapas(); updateZapas(); scheduleCloudSave();
-  };
-  minus.addEventListener('click', () => setVal((parseInt(inp.value) || 0) - 1));
-  plus.addEventListener('click', () => setVal((parseInt(inp.value) || 0) + 1));
-  inp.addEventListener('input', () => {
-    zapasData[k] = Math.max(0, parseInt(inp.value) || 0);
-    saveZapas(); updateZapas(); scheduleCloudSave();
-  });
-  ctrl.appendChild(minus); ctrl.appendChild(inp); ctrl.appendChild(plus);
-  row.appendChild(name); row.appendChild(ctrl);
-  zapasBox.appendChild(row);
+// Filtr „Mam w szafce” chowa puste wiersze tylko przy przełączeniu, wejściu na zakładkę i synchronizacji —
+// nie przy klikaniu −, więc wiersz nie znika pod palcem.
+function applyZapasFilter() {
+  for (const g of zapasGroups) {
+    let visible = 0;
+    for (const k of g.keys) {
+      const hide = zapasOnlyHave && !((Number(zapasData[k]) || 0) > 0);
+      zapasRows[k].classList.toggle('hidden', hide);
+      if (!hide) visible++;
+    }
+    g.note.classList.toggle('hidden', visible > 0);
+    g.note.textContent = `Brak w szafce — „Wszystkie” pokaże ${g.keys.length} `
+      + `${plural(g.keys.length, ['smak', 'smaki', 'smaków'])} do dodania.`;
+    if (zapasOnlyHave && visible > 0) g.det.open = true;
+  }
+  document.getElementById('zHave').setAttribute('aria-pressed', String(zapasOnlyHave));
+  document.getElementById('zAll').setAttribute('aria-pressed', String(!zapasOnlyHave));
 }
+document.getElementById('zHave').addEventListener('click', () => { zapasOnlyHave = true; applyZapasFilter(); });
+document.getElementById('zAll').addEventListener('click', () => { zapasOnlyHave = false; applyZapasFilter(); });
+
+for (const f of FIRMY.concat([INNA])) {
+  const keys = Object.keys(KARMY).filter(k => firmaOf(k) === f);
+  if (!keys.length) continue;
+  const det = document.createElement('details'); det.className = 'grp';
+  const sum = document.createElement('summary');
+  sum.innerHTML = `<span class="dot ${f.cls}"></span><span class="gname">${esc(f.name)}</span>`
+    + '<span class="gmeta tnum"></span><span class="gchev">›</span>';
+  const body = document.createElement('div'); body.className = 'grows';
+  const note = document.createElement('div'); note.className = 'gnote hidden';
+  body.appendChild(note);
+  det.appendChild(sum); det.appendChild(body);
+  det.open = keys.some(k => (Number(zapasData[k]) || 0) > 0);   // start: otwarte firmy, które są w szafce
+  zapasBox.appendChild(det);
+  zapasGroups.push({ f, det, meta: sum.querySelector('.gmeta'), note, keys });
+
+  for (const k of keys) {
+    const row = document.createElement('div'); row.className = 'zrow';
+    const name = document.createElement('span'); name.className = 'zname';
+    const pl = plOf(k), smak = smakOf(k);
+    name.innerHTML = `${emo(k)} ${esc(smak)} <span class="jarsize">· ${pl && pl !== smak ? esc(pl) + ' · ' : ''}`
+      + `${JAR_G[k]} g/${esc(f.jedn[0])}</span>`;
+    const ctrl = document.createElement('div'); ctrl.className = 'zctrl';
+    const minus = document.createElement('button');
+    minus.type = 'button'; minus.className = 'step'; minus.textContent = '−'; minus.title = 'Mniej';
+    const inp = document.createElement('input');
+    inp.type = 'number'; inp.min = '0'; inp.step = '1'; inp.inputMode = 'numeric'; inp.className = 'tnum';
+    inp.value = (zapasData[k] > 0) ? zapasData[k] : '';
+    zapasInputs[k] = inp;
+    const plus = document.createElement('button');
+    plus.type = 'button'; plus.className = 'step'; plus.textContent = '+'; plus.title = 'Więcej';
+    const setVal = (v) => {
+      v = Math.max(0, v);
+      zapasData[k] = v;
+      inp.value = v > 0 ? v : '';
+      saveZapas(); updateZapas(); scheduleCloudSave();
+    };
+    minus.addEventListener('click', () => setVal((parseInt(inp.value) || 0) - 1));
+    plus.addEventListener('click', () => setVal((parseInt(inp.value) || 0) + 1));
+    inp.addEventListener('input', () => {
+      zapasData[k] = Math.max(0, parseInt(inp.value) || 0);
+      saveZapas(); updateZapas(); scheduleCloudSave();
+    });
+    ctrl.appendChild(minus); ctrl.appendChild(inp); ctrl.appendChild(plus);
+    row.appendChild(name); row.appendChild(ctrl);
+    body.appendChild(row);
+    zapasRows[k] = row;
+  }
+}
+zapasOnlyHave = anyStock();   // pusta spiżarnia → od razu „Wszystkie”
+applyZapasFilter();
 updateZapas();
 
 // ── Wspólny zapas między domownikami (Supabase, czysty fetch — bez biblioteki) ──
@@ -757,6 +1060,7 @@ function refreshZapasInputs() {
   for (const k of Object.keys(KARMY)) {
     if (zapasInputs[k]) zapasInputs[k].value = (Number(zapasData[k]) > 0) ? zapasData[k] : '';
   }
+  applyZapasFilter();
   updateZapas();
 }
 // ── Optimistic concurrency (compare-and-swap) ──
@@ -903,6 +1207,7 @@ function showTab(name) {
   if (!panes[name]) name = 'kalkulator';
   tabBtns.forEach(b => b.classList.toggle('active', b.dataset.tab === name));
   for (const key in panes) panes[key].classList.toggle('active', key === name);
+  if (name === 'spizarnia') applyZapasFilter();
   try { localStorage.setItem(TAB_KEY, name); } catch (e) {}
 }
 tabBtns.forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
